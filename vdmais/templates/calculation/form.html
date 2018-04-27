@@ -1,0 +1,153 @@
+{% load staticfiles i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VD MAIS</title>
+    <link rel="stylesheet" href="{% static 'components/bootstrap/dist/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+<div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom box-shadow">
+    <h5 class="my-0 mr-md-auto font-weight-normal">VD MAIS</h5>
+</div>
+
+<div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
+    <h1 class="display-4">{% trans 'Pricing' %}</h1>
+    <p class="lead">{% trans 'Power counting' %}</p>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 order-md-1 row forms">
+            <div class="col-md-6 add_button_block">
+                <div class="card box-shadow">
+                    <div class="add_button" onclick="add_server()"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 order-md-2 mb-4">
+            <h4 class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted">{% trans 'Checkout' %}</span>
+            </h4>
+            <ul class="list-group mb-3">
+                <li class="list-group-item d-flex justify-content-between total">
+                    <span>{% trans 'Total ' %}(USD)</span>
+                    <strong>$<span class="total"></span></strong>
+                </li>
+            </ul>
+            <div class="input-group-append">
+                <button type="submit" onclick="count()" class="btn btn-primary">{% trans 'Count' %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'components/jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'components/bootstrap/dist/js/bootstrap.min.js' %}"></script>
+<script>
+    // Добавление шаблона по нажатии на +
+    function add_template(index) {
+        var template = '<div class="item col-md-6" data-index="' + index + '">\n' +
+        '    <div class="card mb-4 box-shadow">\n' +
+        '        <div class="card-header d-flex justify-content-between align-items-center">\n' +
+        '            <h4 class="my-0 font-weight-normal">{% trans 'Server' %} #<span class="counter">' + index + '</span></h4>' +
+        '            <span class="remove" data-index="' + index + '" aria-hidden="true">&times;</span>\n' +
+        '        </div>' +
+        '        <div class="card-body">\n' +
+        '            <div class="list-unstyled mt-3 mb-4">\n' +
+        '                <div class="form-group">\n' +
+        '                    <label>{% trans 'Number power clients:' %} <b><span class="counting">1</span></b></label>\n' +
+        '                    <input type="range" min="1" max="35" class="custom-range clients" value="1">\n' +
+        '                </div>\n' +
+        '                <div class="form-group">\n' +
+        '                    <label>{% trans 'Number of external systems:' %} <b><span class="counting">50</span></b></label>\n' +
+        '                    <input type="range" min="50" max="1000" step="50" class="custom-range systems" value="50">\n' +
+        '                </div>\n' +
+        '                <div class="form-group">\n' +
+                '<label>{% trans 'Number of cores in processor / RAM' %}</label>' +
+        '                    <select class="custom-select custom-select-sm cores" name="" id="">\n' +
+        '                        <option value="2gb" selected>2CPU/2Gb</option>\n' +
+        '                        <option value="4gb">2CPU/4Gb</option>\n' +
+        '                        <option value="8gb">4CPU/8Gb</option>\n' +
+        '                        <option value="16gb">8CPU/16Gb</option>\n' +
+        '                    </select>\n' +
+        '                </div>\n' +
+        '            </div>\n' +
+        '        </div>\n' +
+        '    </div>\n' +
+        '</div>';
+        $('.forms').find('.add_button_block').before(template);
+    }
+
+    function add_server() {
+        var index = $('.item').last().data('index') + 1 || 1;
+        add_template(index);
+        add_checkout(index);
+    }
+
+    function add_checkout(index) {
+        var row = '<li data-index="' + index + '" class="checkout-item list-group-item d-flex justify-content-between bg-light">\n' +
+            '                    <div>\n' +
+            '                        <h6 class="my-0">{% trans 'Server' %} #' + index + '</h6>\n' +
+            '                    </div>\n' +
+            '                    <span class="text-success amount" data-index="' + index + '"></span>\n' +
+            '                </li>';
+        $('li.total').before(row)
+    }
+
+    function remove_server(index) {
+        $('.item[data-index="' + index + '"]').remove();
+        $('.checkout-item[data-index="' + index + '"]').remove()
+    }
+    
+    function count() {
+        var data = [];
+        var error = false;
+        $('.item').each(function (index, obj) {
+            var cores = $(obj).find('.cores').val();
+            if (!cores) {
+                alert('{% trans 'Choose number of cores for server' %} #' + $(obj).find('.counter').text())
+                error = true;
+                return false;
+            }
+            data.push({
+                clients: $(obj).find('.clients').val(),
+                systems: $(obj).find('.systems').val(),
+                cores: $(obj).find('.cores').val(),
+                name: $(obj).data('index')
+            })
+        });
+        if (!error) {
+            $.ajax({
+                type: 'POST',
+                url: '{% url 'api-v1:calculation:calc-list' %}',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                success: function (data) {
+                    for (var i in data['amounts']) {
+                        var obj = data['amounts'][i];
+                        $('span.amount[data-index="' + obj['name'] + '"]').text('$' + obj['amount'])
+                    }
+                    $('span.total').text(data['total'])
+                },
+                error: function (data) {
+                    console.log(data)
+                }
+            })
+        }
+    }
+
+    $(document).ready(function () {
+        $(this)
+            .on('input', '.clients, .systems', function (e) {
+            $(this).siblings('label').find('.counting').text(this.value)
+        })
+            .on('click', '.remove', function () {
+                remove_server($(this).data('index'))
+            })
+    });
+    add_server()
+</script>
+</body>
+</html>
