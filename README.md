@@ -23,11 +23,12 @@ power = {"2gb": 100, "4gb": 200: "8gb": 500, "16gb": 900}
 server_amount = AMOUNT_MIN + 10 * (pow(B, 0.25) + 50 * pow(A, 0.5) + power[C]
 
 
-## Installation
+## Установка
 `bower i`
+
 `cp main/.env_sample main/.env`
 
-modify `.env` file for you
+Измените файл `.env` под себя 
 
 `python manage.py migrate`
 `python manage.py runserver`
