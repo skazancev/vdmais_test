@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 
-from vdmais.calculation.serializers import CalcSerializer
+from calculation.serializers import CalcSerializer
 
 
 class CalcViewSet(viewsets.GenericViewSet):
